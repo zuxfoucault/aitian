@@ -34,10 +34,11 @@ spec / plan / design doc from that session so a later session can lazily load th
 - Settled the data architecture: one Markdown-file-per-entry under `data/`, built to JSON + a manifest
   at deploy via GitHub Actions; a meetup is a multi-segment session (Talk 1 / Talk 2 / Chat).
 - Created public repo `sansword/aitian` and pushed the kickstart doc.
-- Applied the **document-tree practice** (this `CLAUDE.md` / `CLAUDE.advanced.md`, `todo.md`, this
-  devlog, and the `docs/` historical tiers + templates).
+- Applied the **document-tree practice** (this `CLAUDE.md`, `todo.md`, this devlog, and the `docs/`
+  historical tiers + templates).
 - Opted into advanced governance blocks — **PR gate, Conventions, dev cycle, pre-commit secret scan** —
-  promoting them into `CLAUDE.md`; left Unlock-protocol and ADR-flow dormant in the menu.
+  promoting them straight into `CLAUDE.md`. Left Unlock-protocol and ADR-flow out (reconstructable from
+  the `sans_doc_tree` template if wanted later) and removed the `CLAUDE.advanced.md` menu as unused.
 - Aligned the historical spec/plan folders to the **superpowers plugin defaults**
   (`docs/superpowers/specs/`, `docs/superpowers/plans/`) so brainstorm/write-plan output lands there
   automatically; dropped the unused `docs/decisions/` + ADR template.

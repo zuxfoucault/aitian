@@ -7,7 +7,7 @@ GitHub Pages site. Full requirements/brainstorm: [`docs/kickstart.md`](docs/kick
 
 This file is auto-loaded every session — a small **index**, not an encyclopedia. Shared conventions
 (three-part semver, devlog format, communication style) live in the global `~/.claude/CLAUDE.md`;
-don't restate them. Dormant governance blocks live in [`CLAUDE.advanced.md`](CLAUDE.advanced.md).
+don't restate them.
 
 ## Who's working on this
 
