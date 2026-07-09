@@ -190,6 +190,8 @@ How the page then reads it:
 - Alternative considered: an Action that regenerates **and commits** the JSON on merge (works with plain "deploy from branch", but adds a bot commit + a brief desync window). Rejected.
 - Rejected: parsing Markdown/YAML in the browser at runtime (adds js-yaml + marked as client deps) and listing the directory via the GitHub Contents API (60 req/hr + network dependency).
 
+**⚠️ Publish only the built site — not the planning docs.** The Pages artifact must contain **only** the website output (e.g. build to `dist/` and upload that: `upload-pages-artifact` with `path: dist`, **never `path: .`**). Otherwise `CLAUDE.md`, `todo.md`, and everything in `docs/` (including this file and the devlog) would be copied into the site and fetchable at `sansword.github.io/aitian/docs/…`. Keeping site source (`site/` or `src/`) separate from repo-root docs makes this automatic. Note: the *repo* is public regardless, so these docs are already visible when browsing GitHub — this rule only keeps them off the served **website**. To hide them entirely would require a private repo (which loses free Pages + open PRs) or a separate private planning repo — not worth it, since the docs carry no secrets.
+
 ### Adding a new meetup (contributor flow) — one step
 
 1. Copy `data/meetups/_template.md` → rename to `YYYY-MM-DD-slug.md`, fill in the frontmatter (date + segments) and any meetup-level notes in the body, open a PR. Done.
