@@ -29,8 +29,19 @@ const MATTER_OPTS = {
 
 function readEntry(filePath) {
   const raw = fs.readFileSync(filePath, 'utf8');
-  const { data, content } = matter(raw, MATTER_OPTS);
-  return { raw, data: data ?? {}, content };
+  try {
+    const { data, content } = matter(raw, MATTER_OPTS);
+    return { raw, data: data ?? {}, content };
+  } catch (err) {
+    // A YAML syntax error becomes a normal per-file error so every other
+    // file still gets validated and reported in the same pass.
+    return {
+      raw,
+      data: {},
+      content: '',
+      parseError: `frontmatter is not valid YAML: ${err.reason ?? err.message}`,
+    };
+  }
 }
 
 // _*.md files are templates: skipped by validation and emission (spec §1.1).
@@ -53,7 +64,11 @@ export function buildData({ dataDir, outDir }) {
     errors.push('community.md: missing (required)');
   } else {
     community = readEntry(communityPath);
-    addErrors('community.md', validateCommunity({ data: community.data }));
+    if (community.parseError) {
+      addErrors('community.md', [community.parseError]);
+    } else {
+      addErrors('community.md', validateCommunity({ data: community.data }));
+    }
     addErrors('community.md', privacyLintErrors(community.raw));
   }
 
@@ -67,17 +82,25 @@ export function buildData({ dataDir, outDir }) {
 
   const meetups = listDataFiles(path.join(dataDir, 'meetups')).map((filename) => {
     const entry = readEntry(path.join(dataDir, 'meetups', filename));
-    addErrors(`meetups/${filename}`, validateMeetup({ filename, data: entry.data }));
+    if (entry.parseError) {
+      addErrors(`meetups/${filename}`, [entry.parseError]);
+    } else {
+      addErrors(`meetups/${filename}`, validateMeetup({ filename, data: entry.data }));
+    }
     addErrors(`meetups/${filename}`, privacyLintErrors(entry.raw));
     return { filename, ...entry };
   });
 
   const moderators = listDataFiles(path.join(dataDir, 'moderators')).map((filename) => {
     const entry = readEntry(path.join(dataDir, 'moderators', filename));
-    addErrors(
-      `moderators/${filename}`,
-      validateModerator({ filename, data: entry.data, avatarFiles }),
-    );
+    if (entry.parseError) {
+      addErrors(`moderators/${filename}`, [entry.parseError]);
+    } else {
+      addErrors(
+        `moderators/${filename}`,
+        validateModerator({ filename, data: entry.data, avatarFiles }),
+      );
+    }
     addErrors(`moderators/${filename}`, privacyLintErrors(entry.raw));
     return { filename, ...entry };
   });
@@ -94,7 +117,7 @@ export function buildData({ dataDir, outDir }) {
   const meetupJsons = meetups.map(({ filename, data, content }) =>
     meetupToJson({ id: filename.replace(/\.md$/, ''), data, content, defaults }),
   );
-  meetupJsons.sort((a, b) => a.start.localeCompare(b.start)); // ISO strings sort chronologically
+  meetupJsons.sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0)); // ISO strings sort chronologically
   for (const m of meetupJsons) {
     fs.writeFileSync(path.join(dataOut, 'meetups', `${m.id}.json`), JSON.stringify(m, null, 2));
   }
@@ -106,7 +129,7 @@ export function buildData({ dataDir, outDir }) {
   const moderatorJsons = moderators.map(({ filename, data, content }) =>
     moderatorToJson({ id: filename.replace(/\.md$/, ''), data, content }),
   );
-  moderatorJsons.sort((a, b) => a.id.localeCompare(b.id));
+  moderatorJsons.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   for (const m of moderatorJsons) {
     fs.writeFileSync(path.join(dataOut, 'moderators', `${m.id}.json`), JSON.stringify(m, null, 2));
   }

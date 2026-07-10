@@ -61,6 +61,7 @@ test('bad fixture fails with every expected message and emits nothing', () => {
     'default.png',                              // fallback avatar missing
     'email-shaped',                             // privacy lint
     'links[0].url',                             // ftp:// link
+    'not valid YAML',                           // broken frontmatter syntax
   ];
   for (const needle of needles) {
     assert.ok(all.includes(needle), `expected an error containing: ${needle}\ngot:\n${all}`);
@@ -68,6 +69,7 @@ test('bad fixture fails with every expected message and emits nothing', () => {
   // Every error names its file.
   assert.match(all, /meetups\/2026-07-14-broken\.md/);
   assert.match(all, /meetups\/2026-07-21\.md/);
+  assert.match(all, /meetups\/2026-08-11-bad-yaml\.md/);
   assert.match(all, /moderators\/bob\.md/);
   // Nothing was emitted.
   assert.ok(!fs.existsSync(path.join(out, 'data')));
