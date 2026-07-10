@@ -38,7 +38,8 @@ data/
   community.md              # site copy: tagline, intro, CTA placeholders
   meetups/
     _template.md
-    2026-07-14-<slug>.md    # one file per meetup; seed ALL 8 scheduled Tuesdays (7/14–9/1)
+    2026-07-14-<slug>.md    # one file per meetup; seed ALL 8 scheduled Tuesdays (7/14–9/1).
+                            #   Dates are PT Tuesdays (= Wednesday mornings in Taipei, §2.2)
   moderators/
     _template.md
     sansword.md
