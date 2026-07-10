@@ -24,6 +24,13 @@ test('Taipei has no DST and sits at UTC+8', () => {
   );
 });
 
+test('spring-forward day resolves correctly (2026-03-08 18:00 PT is already PDT)', () => {
+  assert.equal(
+    zonedTimeToInstant('2026-03-08', '18:00', 'America/Los_Angeles'),
+    '2026-03-09T01:00:00.000Z',
+  );
+});
+
 test('isValidTimeZone accepts IANA names and rejects junk', () => {
   assert.equal(isValidTimeZone('America/Los_Angeles'), true);
   assert.equal(isValidTimeZone('Asia/Taipei'), true);
