@@ -132,3 +132,115 @@ export function validateMeetup({ filename, data }) {
 }
 
 export { TIME_RE, HTTP_URL_RE, EMAIL_RE, urlError, unknownKeyErrors, bilingualErrors };
+
+const MODERATOR_FILENAME_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*\.md$/;
+const AVATAR_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const MODERATOR_KEYS = ['id', 'name', 'bio', 'avatar', 'links'];
+const LINK_KEYS = ['label', 'url'];
+
+export function validateModerator({ filename, data, avatarFiles }) {
+  const errors = [];
+  if (!MODERATOR_FILENAME_RE.test(filename)) {
+    errors.push(`filename "${filename}" must be a lowercase slug like "sansword.md"`);
+  }
+  if ('id' in data) {
+    errors.push('remove "id:" from the frontmatter — the filename is the id');
+  }
+  errors.push(
+    ...unknownKeyErrors(data, MODERATOR_KEYS, 'frontmatter', MODERATOR_KEYS.filter((k) => k !== 'id')),
+  );
+  if (typeof data.name !== 'string' || data.name.trim() === '') {
+    errors.push('name: required (plain string display name)');
+  }
+  errors.push(...bilingualErrors(data.bio, 'bio', { required: true }));
+  if (data.avatar !== undefined) {
+    if (typeof data.avatar !== 'string' || !AVATAR_RE.test(data.avatar) || data.avatar.includes('..')) {
+      errors.push(
+        `avatar: must be a bare filename inside data/moderators/avatars/ ` +
+          `(no "/", no "..", no URL) — got ${JSON.stringify(data.avatar)}`,
+      );
+    } else if (!avatarFiles.includes(data.avatar)) {
+      errors.push(`avatar: "${data.avatar}" not found in data/moderators/avatars/`);
+    }
+  }
+  if (data.links !== undefined) {
+    if (!Array.isArray(data.links)) {
+      errors.push('links: must be a list of {label, url} entries');
+    } else {
+      data.links.forEach((link, i) => {
+        const ctx = `links[${i}]`;
+        if (link === null || typeof link !== 'object' || Array.isArray(link)) {
+          errors.push(`${ctx}: must be a map with label + url`);
+          return;
+        }
+        errors.push(...unknownKeyErrors(link, LINK_KEYS, ctx));
+        errors.push(...bilingualErrors(link.label, `${ctx}.label`, { required: true }));
+        if (typeof link.url !== 'string' || !HTTP_URL_RE.test(link.url)) {
+          errors.push(`${ctx}.url: required, must start with http:// or https://`);
+        }
+      });
+    }
+  }
+  return errors;
+}
+
+const COMMUNITY_KEYS = ['tagline', 'schedule', 'ctas'];
+const SCHEDULE_KEYS = ['timezone', 'startTime', 'endTime'];
+const CTA_KEYS = ['id', 'label', 'href'];
+
+export function validateCommunity({ data }) {
+  const errors = [];
+  errors.push(...unknownKeyErrors(data, COMMUNITY_KEYS, 'frontmatter'));
+  errors.push(...bilingualErrors(data.tagline, 'tagline', { required: true }));
+
+  const sched = data.schedule;
+  if (sched === null || sched === undefined || typeof sched !== 'object' || Array.isArray(sched)) {
+    errors.push('schedule: required map with timezone, startTime, endTime');
+  } else {
+    errors.push(...unknownKeyErrors(sched, SCHEDULE_KEYS, 'schedule'));
+    if (!isValidTimeZone(sched.timezone)) {
+      errors.push(`schedule.timezone: "${sched.timezone}" is not a valid IANA timezone name`);
+    }
+    for (const f of ['startTime', 'endTime']) {
+      if (typeof sched[f] !== 'string' || !TIME_RE.test(sched[f])) {
+        errors.push(`schedule.${f}: required, "HH:MM" 24-hour — quote it in YAML`);
+      }
+    }
+  }
+
+  if (!Array.isArray(data.ctas)) {
+    errors.push('ctas: required list');
+  } else {
+    const seen = new Set();
+    data.ctas.forEach((cta, i) => {
+      const ctx = `ctas[${i}]`;
+      if (cta === null || typeof cta !== 'object' || Array.isArray(cta)) {
+        errors.push(`${ctx}: must be a map with id, label, href`);
+        return;
+      }
+      errors.push(...unknownKeyErrors(cta, CTA_KEYS, ctx));
+      if (typeof cta.id !== 'string' || cta.id.trim() === '') {
+        errors.push(`${ctx}.id: required stable key (the frontend targets it)`);
+      } else if (seen.has(cta.id)) {
+        errors.push(`${ctx}.id: duplicate "${cta.id}"`);
+      } else {
+        seen.add(cta.id);
+      }
+      errors.push(...bilingualErrors(cta.label, `${ctx}.label`, { required: true }));
+      if (cta.href !== undefined) {
+        const e = urlError(cta.href, `${ctx}.href`);
+        if (e) errors.push(e);
+      }
+    });
+  }
+  return errors;
+}
+
+// Privacy lint (kickstart §4d): contact info never enters data/. Runs over the
+// RAW file text so frontmatter and body are both covered.
+export function privacyLintErrors(raw) {
+  if (!raw.includes('@')) return []; // fast path — avoids quadratic regex scans on large @-free files
+  return [...raw.matchAll(EMAIL_RE)].map(
+    (m) => `privacy: email-shaped string "${m[0]}" — contact info never enters data/ (kickstart §4d)`,
+  );
+}
