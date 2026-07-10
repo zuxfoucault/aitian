@@ -44,8 +44,9 @@ data/
     sansword.md
     pinku.md
     avatars/                # avatar image files — owned by the data layer (see §1.3)
-      sansword.jpg
-      pinku.jpg
+      default.png           # fallback for moderators who haven't provided their own
+      sansword.png
+      pinku.png
 ```
 
 Files whose name starts with `_` are **skipped by validation and emission** — they are templates,
@@ -56,25 +57,41 @@ Seed a file for **every** scheduled Tuesday, including unbooked ones: a meetup w
 never generates the schedule — it only compares the visitor's clock against dates present in the
 data (§2.4).
 
-### 1.2 Meetup schema (`data/meetups/YYYY-MM-DD-slug.md`)
+### 1.2 Meetup schema (`data/meetups/YYYY-MM-DD[-slug].md`)
 
 **The filename is the id** (`2026-07-14-ai-role-play.md` → id `2026-07-14-ai-role-play`). This is a
 deliberate deviation from the kickstart §4b example, which also had `id:` in frontmatter: two copies
 of one fact drift. The validator **rejects** a frontmatter `id`.
 
+**The slug is optional.** Its jobs: make the citable URL hash human-readable
+(`meetup.html#2026-07-14-ai-role-play`) and disambiguate multiple events on one date. TBA seed
+weeks use the bare date (`2026-08-25.md`). **Never rename a file after it deploys** — the filename
+is the cited URL — so a date-only file keeps its name even after a talk gets booked.
+
 ```yaml
 ---
-date: 2026-07-14T20:00:00+08:00   # required; ISO 8601 with timezone offset
+date: 2026-07-14                   # required; YYYY-MM-DD — the calendar date in the meetup's
+                                   #   timezone (a Tuesday-evening PT meetup uses the PT date)
+startTime: "18:00"                 # optional; HH:MM 24h — overrides the community.md default
+endTime: "19:30"                   # optional; overrides the community.md default
+timezone: America/Los_Angeles      # optional; IANA name — overrides the community.md default
 segments:                          # required; may be [] (renders as "TBA — want to speak?")
   - type: talk                     # required per segment: talk | chat
-    title: "..."                   # required; speaker's original language, plain string
+    title: "..."                   # required; plain string OR {en, zh} map (bilingual rules, §1.3)
     speaker: Claire                # required for talk, optional/empty for chat;
                                    #   display name only — NEVER contact info (kickstart §4d)
+    speakerBio: ""                 # optional; 1–2 sentence intro, inline markdown allowed —
+                                   #   LinkedIn/portfolio links welcome; sanitized at build,
+                                   #   link URLs must be http(s):// (validator-enforced)
     materialsUrl: ""               # optional; when non-empty must be http(s):// (validator-enforced)
-attendees: null                    # optional; back-fill after the event
+attendees: null                    # optional; integer ≥ 0, back-fill after the event
 ---
 (optional meetup-level intro body — markdown)
 ```
+
+The build resolves each meetup's `date` + start/end times + timezone (meetup override, else
+community default) into **absolute ISO instants** in the emitted JSON — DST-correct via the IANA
+zone — so the frontend compares and formats ready-made instants, no calendar math.
 
 Extending the `type` enum later (e.g. `workshop`) counts as an **additive** change: the frontend
 must render unknown segment types generically (title + speaker + materials link), so older
@@ -87,17 +104,23 @@ frontends degrade gracefully instead of breaking.
 ```yaml
 ---
 name: pinku          # required
-avatar: pinku.jpg    # required; bare filename resolved against data/moderators/avatars/
-                     #   (validator: relative filename only — no scheme, no "..", no "/")
-linkedin: ""         # optional; when non-empty must be http(s):// (validator-enforced)
-threads: ""          # optional; same URL rule
-sideProject: ""      # optional; same URL rule
+bio:                 # required; short one-liner for the grid card —
+  en: "Co-organizer. Product & design."     #   plain string OR {en, zh} map (bilingual rules below)
+  zh: "共同主辦：產品與設計。"
+avatar: pinku.png    # optional; bare filename resolved against data/moderators/avatars/
+                     #   (validator: relative filename only — no scheme, no "..", no "/");
+                     #   omitted → default.png
+links:               # optional; generic list — any networks/portfolio, moderator's choice
+  - label: LinkedIn              # plain string or {en, zh} map
+    url: "https://..."           # must be http(s):// (validator-enforced)
+  - label: Portfolio
+    url: "https://..."
 ---
 ## en
-Short intro in English…
+Optional longer intro in English…
 
 ## zh
-中文簡介…
+中文較長的介紹（選填）…
 ```
 
 Avatar image files live in `data/moderators/avatars/` — owned by the data layer, so a frontend
@@ -113,6 +136,10 @@ validator rejects unused fields):
 tagline:
   en: "Show off your AI work"
   zh: "用你的 AI 作品展風神"
+schedule:                           # meetup defaults — every field overridable per meetup file
+  timezone: America/Los_Angeles     # IANA name → PDT/PST handled automatically
+  startTime: "18:00"                # 6:00 PM
+  endTime: "19:30"                  # 7:30 PM
 ctas:
   - id: speak                       # required; stable key the frontend targets
     label: {en: "Sign up to speak", zh: "報名分享"}   # placeholder copy — finalize in docs/wording.md
@@ -125,11 +152,14 @@ ctas:
 ```
 
 **Bilingual convention — one rule per shape, never both for the same field:**
-- Prose → `## en` / `## zh` body sections.
-- Short strings → `{en, zh}` frontmatter maps.
-- User-provided content (talk titles, materials) → single-language plain string, rendered as-is.
-- A body with only one language section is **valid**; the frontend falls back to whichever
-  language exists rather than erroring.
+- Prose → `## en` / `## zh` body sections. A body with only one section is **valid** — it renders
+  for both languages.
+- Short strings (talk titles, bios, labels, taglines) → **either** a plain string (renders for
+  both languages) **or** an `{en, zh}` map. In a map, either key may be omitted (at least one
+  required); a missing language falls back to the one provided.
+- This string-or-map shape is part of the v1 contract for every user-facing text field — deciding
+  it now is what makes "contributor later adds a translation" a content edit instead of a schema
+  migration.
 
 ### 1.4 Stability rules (the contract terms)
 
@@ -139,7 +169,10 @@ in this milestone as a **maintained** doc):
 1. **Additive-only evolution.** New fields arrive optional-with-default. No renames, no
    restructures, no type changes to existing fields.
 2. **No presentation concerns in data.** No colors, layout hints, or ordering fields beyond `date`.
-3. **User content stays single-language.** i18n applies to UI chrome and site copy only.
+3. **User content is bilingual-capable from day one.** Every user-facing text field accepts a
+   plain string (renders for both languages) or an `{en, zh}` map with fallback (§1.3) — so adding
+   a translation later is a content edit, never a schema migration. UI chrome i18n stays the
+   frontend's job.
 4. **Schema changes are deliberate.** Any change updates `docs/data-schema.md` + the validator +
    `_template.md` in the same PR; CI fails otherwise (strict validation rejects unknown fields, so
    the validator can't silently lag the docs).
@@ -149,17 +182,22 @@ in this milestone as a **maintained** doc):
 Node script, devDeps `gray-matter` + `marked` + `sanitize-html`. Two jobs:
 
 1. **Validate** every `data/**/*.md` (skipping `_*.md` templates). CI **fails** on: unknown
-   frontmatter fields, missing required fields (incl. `speaker` on `talk` segments), unparseable or
-   offset-less dates, bad `segments[].type`, frontmatter `id` present, filename pattern violations,
-   URL-typed fields (`materialsUrl`, `linkedin`, `threads`, `sideProject`, CTA `href`) that are
-   non-empty and don't start `http(s)://`, `avatar` values that aren't a bare relative filename,
-   and email-shaped strings anywhere in `data/` (privacy lint, kickstart §4d). Clear per-file error
-   messages — this is the PR gate contributors hit.
+   frontmatter fields, missing required fields (incl. `speaker` on `talk` segments), malformed
+   `date` (must be `YYYY-MM-DD`), malformed `startTime`/`endTime` (must be `HH:MM`), unknown
+   `timezone` (must be a valid IANA name), bad `segments[].type`, frontmatter `id` present,
+   filename pattern violations, `attendees` that isn't an integer ≥ 0 (or null), bilingual values
+   that are neither string nor `{en, zh}`-with-≥1-key, URL-typed fields (`materialsUrl`,
+   `links[].url`, CTA `href`, links inside `speakerBio` markdown) that don't start `http(s)://`,
+   `avatar` values that aren't a bare relative filename or that name a file missing from
+   `data/moderators/avatars/`, and email-shaped strings anywhere in `data/` (privacy lint,
+   kickstart §4d). Clear per-file error messages — this is the PR gate contributors hit.
 2. **Emit** into `dist/data/`:
    - one JSON per meetup and per moderator (frontmatter + body rendered to sanitized HTML,
-     language-sectioned bodies split into `{en, zh}`),
-   - a date-sorted `index.json` per collection (id, date, segment summaries, attendees — enough to
-     render cards without fetching detail files),
+     language-sectioned bodies split into `{en, zh}`; meetup start/end resolved to absolute ISO
+     instants per §1.2),
+   - a date-sorted `index.json` per collection (id, start/end instants, segment summaries,
+     attendees — enough to render cards and pick the featured meetup without fetching detail
+     files),
    - `community.json`,
    - a copy of `data/moderators/avatars/` (the image files).
 
@@ -196,23 +234,27 @@ consuming only built JSON. This layer is replaceable without touching `data/`.
 
 - Reads `location.hash`; no hash → next upcoming; unknown id → friendly not-found + link back.
 - Renders date/time, segments in file order labeled by position and type ("Talk 1" / "Talk 2" /
-  "Chat" — labels are UI chrome, translated), each with title, speaker, materials link when present.
-- **Times display event-local** (the `+08:00` offset as authored) everywhere on the site — this is
-  a physical Taipei meetup; converting to the viewer's timezone would mislead. Viewer timezone is
-  used only for the upcoming/past *comparison* (§2.4), never for display.
+  "Chat" — labels are UI chrome, translated), each with title, speaker, the short speaker bio when
+  present (sanitized HTML from the build), and materials link when present.
+- **Times display in US Pacific first** — the meetup's home timezone (`America/Los_Angeles`; this
+  is a **virtual meetup based on the US west coast**) — with a **Taipei-time reminder** alongside,
+  e.g. "Tue 6:00–7:30 PM PT · 台北時間週三上午 9:00–10:30". Mind the day shift: Tuesday evening PT
+  is Wednesday morning in Taipei — the reminder must carry its own weekday. Viewer timezone is used
+  only for the upcoming/past *comparison* (§2.4), never for display.
 - "👥 N aitians" renders only when `attendees` is set.
 
 ### 2.3 Moderators (`moderators.html`)
 
-Grid of circular avatars, name, bio in active language, LinkedIn icon when set.
+Grid of circular avatars (moderator's own or `default.png`), name, the short `bio` in the active
+language, the generic `links` list rendered by label, and the longer body intro when present.
 
 ### 2.4 "Next meetup" detection
 
 Client-side, automatic:
-- Featured = first meetup where `date + 3h grace window > now`. The grace window keeps tonight's
-  meetup featured while it runs; it lives in frontend code (presentation logic). If real end times
-  are ever wanted, an optional `durationMinutes` field is an additive schema change later.
-- ISO dates carry `+08:00`, so comparisons are absolute-time correct in any visitor timezone.
+- Featured = first meetup whose **end instant** (resolved at build from date + endTime + timezone,
+  §1.2) plus a 1-hour grace is still ahead of `now` — the meetup stays featured while it runs and
+  through wrap-up.
+- The built JSON carries absolute ISO instants, so comparisons are correct in any visitor timezone.
 - **Schedule exhausted:** featured slot degrades to a "no meetup scheduled yet — want to speak?"
   card wired to the CTA; hash-less `meetup.html` falls back to the most recent past meetup.
 - One shared helper in `site.js` powers the featured pick, the coming-up strip, and every
@@ -303,8 +345,10 @@ PR validate runs carry read-only permissions and never touch the deploy pipeline
 
 Proportional to MVP:
 - `node:test` for `build-data.mjs` against fixtures: one golden meetup + moderator that must parse
-  and emit the expected JSON shape; bad fixtures (unknown field, missing `date`, bad segment type,
-  frontmatter `id`) that must each fail with a clear message. The validator is the load-bearing code.
+  and emit the expected JSON shape (incl. correct PT→instant resolution across a DST boundary); bad
+  fixtures (unknown field, malformed `date`, bad segment type, frontmatter `id`, `javascript:` URL,
+  non-integer `attendees`, missing avatar file) that must each fail with a clear message. The
+  validator is the load-bearing code.
 - Manual smoke pass before ship: both languages, both themes, hash / no-hash / bad-hash detail
   routes, TBA rendering, attendees hidden-when-null.
 
