@@ -11,7 +11,8 @@ current as part of the end-of-session checklist.
 - [x] **Execute the plan** ([`docs/superpowers/plans/2026-07-10-mvp-scaffold.md`](docs/superpowers/plans/2026-07-10-mvp-scaffold.md))
       — done 2026-07-10 (v0.3.0): built on `feat/mvp-scaffold`, stacked on the still-unmerged
       `feat/mvp-scaffold-spec` rather than branching fresh off `main` after that PR merged — the two
-      PRs land in sequence. Cutline for 7/14 (Tasks 0–11 + doc tasks) shipped.
+      PRs land in sequence. All 19 tasks shipped (well past the 7/14 cutline), incl. the meetup
+      detail and moderators pages.
 - [x] **Write the implementation plan** from the approved spec — done 2026-07-10:
       [`docs/superpowers/plans/2026-07-10-mvp-scaffold.md`](docs/superpowers/plans/2026-07-10-mvp-scaffold.md).
 - [ ] **Back-fill booked weeks from the private sheet** (SansWord) — edit the seeded TBA files
@@ -21,6 +22,10 @@ current as part of the end-of-session checklist.
       `build` check; Actions "Require approval for all outside collaborators" (spec §3.3).
 - [ ] **Verify the deployed PR run** — after the MVP PR opens, confirm the `build` job runs on the
       PR and `deploy` is skipped; after merge, confirm `aitian.dev` serves the new site.
+- [ ] **Speaker-consent announcement (pre-merge gate, SansWord)** — merging the MVP PR is the first
+      publication of speaker names (Claire, 7/14 meetup). The one-time community-channel announcement
+      with opt-out must happen BEFORE merge (docs/data-schema.md §Privacy & consent). Confirm done or
+      hold the merge.
 
 ## Later
 
