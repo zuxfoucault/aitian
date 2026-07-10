@@ -5,12 +5,14 @@ current as part of the end-of-session checklist.
 
 ## Now
 
-- [ ] **Write the implementation plan** from the approved spec
-      ([`docs/superpowers/specs/2026-07-09-mvp-scaffold-design.md`](docs/superpowers/specs/2026-07-09-mvp-scaffold-design.md))
-      via `superpowers:writing-plans` in a fresh session. Mind the spec §5 sequencing hint: data
-      layer + build/validate + landing form the ship-alone cutline for **7/14**.
-- [ ] **Merge the spec PR** — branch `feat/mvp-scaffold-spec` holds the spec + doc updates;
-      push, raise PR, squash-merge (new branching convention in `CLAUDE.md`).
+- [ ] **Merge the spec+plan PR** — branch `feat/mvp-scaffold-spec` holds the spec, the
+      implementation plan, and doc updates; push, raise PR, squash-merge (branching convention
+      in `CLAUDE.md`).
+- [ ] **Execute the plan** ([`docs/superpowers/plans/2026-07-10-mvp-scaffold.md`](docs/superpowers/plans/2026-07-10-mvp-scaffold.md))
+      in a fresh session on a new `feat/mvp-scaffold` branch off `main` (after the spec+plan PR
+      merges). Cutline for **7/14** is marked in the plan: Tasks 0–11 + doc tasks ship alone.
+- [x] **Write the implementation plan** from the approved spec — done 2026-07-10:
+      [`docs/superpowers/plans/2026-07-10-mvp-scaffold.md`](docs/superpowers/plans/2026-07-10-mvp-scaffold.md).
 
 ## Later
 

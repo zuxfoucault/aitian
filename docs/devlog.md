@@ -27,7 +27,7 @@ spec / plan / design doc from that session so a later session can lazily load th
 
 **Review:** not yet
 **Design docs:**
-- MVP Scaffold: [Spec](superpowers/specs/2026-07-09-mvp-scaffold-design.md)
+- MVP Scaffold: [Spec](superpowers/specs/2026-07-09-mvp-scaffold-design.md) [Plan](superpowers/plans/2026-07-10-mvp-scaffold.md)
 
 **What was built:** *(design/planning session — no site code)*
 - Brainstormed and **approved the MVP scaffold spec**, resolving every kickstart §5 open: **vanilla
