@@ -17,9 +17,62 @@ spec / plan / design doc from that session so a later session can lazily load th
 
 | Version | Summary |
 |---------|---------|
+| [v0.3.0](#v030--mvp-data-pipeline--three-pages-2026-07-10-0234) | **MVP shipped** — `data/` Markdown backend with strict CI validation, `build-data.mjs` emit pipeline, and three bilingual/theme-toggling pages (landing, hash-routed meetup detail, moderators) publishing `dist/` to Pages. |
 | [v0.3.0-design](#v030-design--mvp-scaffold-design-2026-07-10-0003) | **MVP scaffold spec approved** — resolved all kickstart §5 opens (vanilla JS, runtime i18n, text-first hero, PR-as-consent, featured+3 landing) and locked the data md schema as a stable "backend" contract. Also: `aitian.dev` live with HTTPS enforced; new feature-branch convention. |
 | [v0.2.0](#v020--end-to-end-cicd-setup-2026-07-09-1724) | Stood up the **end-to-end CI/CD pipeline** — a hello-world page under `site/` deploys to GitHub Pages via Actions and is live at `sansword.github.io/aitian`. |
 | [v0.1.0-design](#v010-design--kickstart-and-doc-tree-setup-2026-07-09-0555) | Captured meetup-portal requirements, named the project **AI展 (aitian)**, created the public repo, and set up the document-tree practice. |
+
+---
+
+## v0.3.0 — MVP: data pipeline + three pages (2026-07-10 02:34)
+
+**Review:** not yet
+**Design docs:**
+- MVP Scaffold: [Spec](superpowers/specs/2026-07-09-mvp-scaffold-design.md) [Plan](superpowers/plans/2026-07-10-mvp-scaffold.md)
+
+**What was built:**
+- `data/` backend seeded: `community.md` (tagline, schedule defaults, placeholder CTAs), 8 PT
+  Tuesdays (7/14 booked with the kickstart talks, 7 TBA), sansword + pinku moderator files,
+  `_template.md` contributor templates, `default.png` placeholder avatar.
+- `scripts/build-data.mjs` + `scripts/lib/` — strict validation (every spec §1.5 rule incl. the
+  email privacy lint and `javascript:`-URL rejection) and emission of sanitized JSON with
+  DST-correct ISO instants; `node:test` suites incl. golden/bad fixture integration tests.
+- Three pages under `site/`: landing (typographic hero, featured meetup, coming-up strip),
+  hash-routed meetup detail (PT-first times + Taipei reminder), moderators grid — one shared
+  `site.js`/`site.css`/`ui-strings.json`, runtime zh/en + dark/light toggles, localStorage-persisted.
+- CI split: `build` job (tests + validate + build, runs on PRs — the contributor gate) and `deploy`
+  job (push/dispatch only, own write permissions); Pages now publishes `dist/`.
+- New maintained docs: `docs/data-schema.md` (contract + consent) and `docs/wording.md` (name lore +
+  copy inventory), registered in root `CLAUDE.md`.
+
+**Key technical learnings:**
+- `[gotcha]` js-yaml's default schema turns `date: 2026-07-14` into a JS `Date` object and unquoted
+  `18:00` into the number `1080` (YAML 1.1 sexagesimal). gray-matter must be given a custom engine
+  with `CORE_SCHEMA` so frontmatter scalars stay strings.
+- `[insight]` Wall-clock → instant resolution needs no timezone library: `Intl.DateTimeFormat`
+  `formatToParts` gives the zone offset at any instant; iterate twice to converge across DST edges.
+- `[gotcha]` A plain `npm install js-yaml` in 2026 resolves to js-yaml 5.x, which is pure-ESM with
+  named exports only — `import yaml from 'js-yaml'` crashes. Pinned `^4.3.0` (last major with the
+  default export) so the planned `yaml.load(s, {schema: yaml.CORE_SCHEMA})` pattern works.
+- `[gotcha]` `node --test scripts/test/` (bare directory) fails on Node 24 — the runner treats the
+  directory as a test entry. Use a glob: `node --test scripts/test/*.test.mjs`.
+- `[gotcha]` A YAML *syntax* error in one contributor file threw an uncaught YAMLException out of
+  `buildData` — stack trace, no filename, remaining files unvalidated. `readEntry` now catches parse
+  errors and reports them per-file through the normal error list.
+- `[gotcha]` `sanitize-html`'s `allowedSchemes` never fires on protocol-relative hrefs
+  (`//evil.example`) because there's no scheme token — `allowProtocolRelative: false` is required to
+  actually enforce http(s)-only links.
+- `[insight]` Headless Chrome `--headless=new --dump-dom --virtual-time-budget=5000` executes the
+  site's modules + fetches against a local server, letting CI-less smoke tests verify the *rendered*
+  DOM (routes, i18n, data binding); `--accept-lang` controls `navigator.language` for i18n cases.
+- `[note]` `Intl` hour formatting: prefer `hourCycle: 'h23'` over `hour12: false` (avoids the TR35
+  "hour 24" quirk class); don't set both — `hour12` wins.
+
+**Process learnings:**
+- `[insight]` Subagent-driven execution with two-stage review (spec compliance, then code quality)
+  caught real bugs a faithful byte-for-byte plan execution would have shipped: the js-yaml 5 breaking
+  change, the YAML-syntax crash path, the protocol-relative sanitize gap, and a hash-navigation
+  stale-render race. Fresh-context reviewers per task are worth the dispatch overhead.
 
 ---
 
