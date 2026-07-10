@@ -12,7 +12,7 @@
 |---|---|
 | 1. Framework | **Vanilla HTML/CSS/JS** + standalone `scripts/build-data.mjs` |
 | 2. i18n approach | **Runtime toggle + string dictionary**; default = auto-detect, fallback **en** |
-| 3. Hero image | **Text-first typographic hero**; en tagline **"Show off your AI work"** |
+| 3. Hero image | **Text-first typographic hero**; tagline en **"Show off your AI work"** / zh **「用你的 AI 作品展風神」** |
 | 4. Consent flow | **PR-your-own = moderator consent; sheet sign-up = speaker consent** |
 | 5. Participant count | **`attendees` field in schema from day one; display only when set** |
 | 7. Upcoming on landing | **Featured next meetup + compact "coming up" strip (2–3)** |
@@ -133,7 +133,9 @@ consuming only built JSON. This layer is replaceable without touching `data/`.
 
 1. **Typographic hero** — AI展 wordmark with 展 as the accent glyph over a CSS gradient; no image
    asset. Tagline en: **"Show off your AI work"** (imperative phrase, no hyphen; the hyphenated
-   "show-off" is the noun). zh tagline: open, to be settled in `docs/wording.md`. Placeholder CTA
+   "show-off" is the noun). Tagline zh: **「用你的 AI 作品展風神」** — 展風神 (Tâi-lô *tián-hong-sîn*,
+   "to show off") echoes the 愛展 pun and reuses the 展 glyph from the wordmark; record the
+   pronunciation/lore in `docs/wording.md`. Placeholder CTA
    buttons (locked decision). Layout reserves a hero-visual slot so a future image drops in without
    reflow.
 2. **Featured next meetup** — rich card: date/time, each segment's title + speaker, link to
@@ -247,7 +249,8 @@ speaker profile pages, Luma/RSVP integration.
 
 - Create `docs/data-schema.md` and `docs/wording.md` during implementation; register both in root
   `CLAUDE.md` "Maintained docs" with update triggers.
-- zh tagline decision → `docs/wording.md`.
+- Tagline pair (en "Show off your AI work" / zh 「用你的 AI 作品展風神」) + the 展風神 lore →
+  `docs/wording.md`.
 - Repo settings task (manual, SansWord): branch protection on `main` + Actions approval setting
   (§3.3).
 - pinku's look-and-feel refs → a post-MVP styling pass on the hero/section design.
